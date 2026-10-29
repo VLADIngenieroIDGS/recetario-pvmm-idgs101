@@ -1,10 +1,14 @@
+import Icon from './Icon.jsx'
+
 function RecipeCard({ receta, onAbrir }) {
   return (
-    <article className="card" style={{ '--accent': receta.color }}>
+    <article className="card" style={{ '--tint': receta.color }}>
       <button className="card__button" onClick={onAbrir} aria-label={`Ver receta de ${receta.titulo}`}>
         <div className="card__cover">
-          <span className="card__emoji" aria-hidden="true">{receta.emoji}</span>
-          <span className="chip chip--light">{receta.categoria}</span>
+          <span className="chip">{receta.categoria}</span>
+          <span className="card__initial" aria-hidden="true">
+            {receta.titulo.charAt(0)}
+          </span>
         </div>
 
         <div className="card__body">
@@ -12,9 +16,9 @@ function RecipeCard({ receta, onAbrir }) {
           <p className="card__desc">{receta.descripcion}</p>
 
           <ul className="meta">
-            <li>⏱️ {receta.tiempo} min</li>
-            <li>🍽️ {receta.porciones} porciones</li>
-            <li>📊 {receta.dificultad}</li>
+            <li><Icon nombre="reloj" tamano={16} /> {receta.tiempo} min</li>
+            <li><Icon nombre="plato" tamano={16} /> {receta.porciones} porc.</li>
+            <li><Icon nombre="nivel" tamano={16} /> {receta.dificultad}</li>
           </ul>
 
           <span className="card__cta">Ver receta →</span>

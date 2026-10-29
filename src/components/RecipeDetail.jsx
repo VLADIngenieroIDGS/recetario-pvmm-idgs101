@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from './Icon.jsx'
 
 // Muestra cantidades amigables: 0.5 -> ½, 1.5 -> 1 ½, etc.
 function formatearCantidad(valor) {
@@ -7,98 +8,120 @@ function formatearCantidad(valor) {
   const decimal = Math.round((valor - entero) * 100) / 100
   if (decimal === 0) return String(entero)
   if (fracciones[decimal]) return entero > 0 ? `${entero} ${fracciones[decimal]}` : fracciones[decimal]
-  return String(Math.round(valor * 10) / 10)
+  return String(valor)
+}
+
+// Agrega o quita una posición de la lista (para tachar / destachar)
+function alternar(lista, index) {
+  return lista.includes(index) ? lista.filter((i) => i !== index) : [...lista, index]
 }
 
 function RecipeDetail({ receta, onVolver }) {
-  const [porciones, setPorciones] = useState(receta.porciones)
-  const [marcados, setMarcados] = useState([])
-  const [pasoActual, setPasoActual] = useState(0)
-  const [pestana, setPestana] = useState('ingredientes')
+  const [pasosHechos, setPasosHechos] = useState([]) // pasos tachados
+  const [marcados, setMarcados] = useState([]) // ingredientes tachados
 
-  const factor = porciones / receta.porciones
-  const totalPasos = receta.pasos.length
-  const progreso = Math.round((pasoActual / totalPasos) * 100)
-  const terminado = pasoActual === totalPasos
-
-  const toggleIngrediente = (index) => {
-    setMarcados((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
-    )
-  }
+  const terminado = pasosHechos.length === receta.pasos.length
 
   return (
-    <div className="detail" style={{ '--accent': receta.color }}>
+    <div className="detail" style={{ '--tint': receta.color }}>
       <header className="detail__hero">
-        <button className="btn btn--back" onClick={onVolver}>
-          ← Volver
-        </button>
-        <span className="detail__emoji" aria-hidden="true">{receta.emoji}</span>
-        <span className="chip chip--light">{receta.categoria}</span>
-        <h1 className="detail__title">{receta.titulo}</h1>
-        <p className="detail__desc">{receta.descripcion}</p>
-        <ul className="meta meta--light">
-          <li>⏱️ {receta.tiempo} min</li>
-          <li>📊 {receta.dificultad}</li>
-          <li>🧾 {receta.ingredientes.length} ingredientes</li>
-        </ul>
-      </header>
+        <div className="detail__hero-inner">
+          <button className="btn btn--back" onClick={onVolver}>
+            <Icon nombre="atras" tamano={16} /> Volver
+          </button>
 
-      {/* Pestañas (en móvil); en escritorio se ven ambas columnas */}
-      <nav className="tabs" role="tablist">
-        <button
-          role="tab"
-          aria-selected={pestana === 'ingredientes'}
-          className={pestana === 'ingredientes' ? 'tab tab--active' : 'tab'}
-          onClick={() => setPestana('ingredientes')}
-        >
-          Ingredientes
-        </button>
-        <button
-          role="tab"
-          aria-selected={pestana === 'pasos'}
-          className={pestana === 'pasos' ? 'tab tab--active' : 'tab'}
-          onClick={() => setPestana('pasos')}
-        >
-          Preparación
-        </button>
-      </nav>
-
-      <div className="detail__content">
-        {/* ---------- Ingredientes ---------- */}
-        <section className={`panel ${pestana === 'ingredientes' ? 'panel--show' : ''}`}>
-          <div className="panel__head">
-            <h2>Ingredientes</h2>
-            <div className="stepper" aria-label="Ajustar porciones">
-              <button
-                onClick={() => setPorciones((p) => Math.max(1, p - 1))}
-                disabled={porciones <= 1}
-                aria-label="Menos porciones"
-              >
-                −
-              </button>
-              <span>
-                <strong>{porciones}</strong> porc.
-              </span>
-              <button onClick={() => setPorciones((p) => Math.min(20, p + 1))} aria-label="Más porciones">
-                +
-              </button>
+          <div className="detail__heading">
+            <span className="detail__initial" aria-hidden="true">
+              {receta.titulo.charAt(0)}
+            </span>
+            <div>
+              <span className="chip">{receta.categoria}</span>
+              <h1 className="detail__title">{receta.titulo}</h1>
+              <p className="detail__desc">{receta.descripcion}</p>
+              <ul className="meta">
+                <li><Icon nombre="reloj" tamano={16} /> {receta.tiempo} min</li>
+                <li><Icon nombre="plato" tamano={16} /> {receta.porciones} porciones</li>
+                <li><Icon nombre="nivel" tamano={16} /> {receta.dificultad}</li>
+              </ul>
             </div>
           </div>
+        </div>
+      </header>
 
-          <p className="hint">Toca un ingrediente para marcarlo cuando ya lo tengas.</p>
+      <div className="detail__content">
+        {/* ---------- 1. Preparación ---------- */}
+        <section className="panel">
+          <div className="panel__head">
+            <h2>Preparación</h2>
+            <span className="counter">
+              {pasosHechos.length} de {receta.pasos.length} pasos
+            </span>
+          </div>
+          <p className="hint">Toca un paso para tacharlo cuando lo termines.</p>
 
-          <ul className="ingredients">
+          <ol className="checklist">
+            {receta.pasos.map((paso, i) => {
+              const hecho = pasosHechos.includes(i)
+              return (
+                <li key={i}>
+                  <label className={hecho ? 'check check--done' : 'check'}>
+                    <input
+                      type="checkbox"
+                      checked={hecho}
+                      onChange={() => setPasosHechos((p) => alternar(p, i))}
+                    />
+                    <span className="check__box check__box--num" aria-hidden="true">
+                      {hecho ? '✓' : i + 1}
+                    </span>
+                    <span className="check__text">{paso}</span>
+                  </label>
+                </li>
+              )
+            })}
+          </ol>
+
+          {terminado && (
+            <div className="done">
+              <Icon nombre="listo" tamano={36} />
+              <p>¡Listo! Buen provecho.</p>
+            </div>
+          )}
+
+          {receta.tip && (
+            <aside className="tip">
+              <Icon nombre="tip" />
+              <p>
+                <strong>Tip:</strong> {receta.tip}
+              </p>
+            </aside>
+          )}
+        </section>
+
+        {/* ---------- 2. Ingredientes ---------- */}
+        <section className="panel">
+          <div className="panel__head">
+            <h2>Ingredientes</h2>
+            <span className="counter">
+              {marcados.length} de {receta.ingredientes.length} listos
+            </span>
+          </div>
+          <p className="hint">Toca un ingrediente para tacharlo cuando ya lo tengas.</p>
+
+          <ul className="checklist checklist--two">
             {receta.ingredientes.map((ing, i) => {
               const listo = marcados.includes(i)
               return (
                 <li key={i}>
-                  <label className={listo ? 'ingredient ingredient--done' : 'ingredient'}>
-                    <input type="checkbox" checked={listo} onChange={() => toggleIngrediente(i)} />
-                    <span className="ingredient__check" aria-hidden="true">{listo ? '✓' : ''}</span>
-                    <span>
+                  <label className={listo ? 'check check--done' : 'check'}>
+                    <input
+                      type="checkbox"
+                      checked={listo}
+                      onChange={() => setMarcados((m) => alternar(m, i))}
+                    />
+                    <span className="check__box" aria-hidden="true">{listo ? '✓' : ''}</span>
+                    <span className="check__text">
                       <strong>
-                        {formatearCantidad(ing.cantidad * factor)} {ing.unidad}
+                        {formatearCantidad(ing.cantidad)} {ing.unidad}
                       </strong>{' '}
                       {ing.nombre}
                     </span>
@@ -107,63 +130,6 @@ function RecipeDetail({ receta, onVolver }) {
               )
             })}
           </ul>
-
-          <p className="counter">
-            {marcados.length} de {receta.ingredientes.length} listos
-          </p>
-        </section>
-
-        {/* ---------- Pasos ---------- */}
-        <section className={`panel ${pestana === 'pasos' ? 'panel--show' : ''}`}>
-          <div className="panel__head">
-            <h2>Preparación</h2>
-            <span className="counter">{progreso}%</span>
-          </div>
-
-          <div className="progress" aria-hidden="true">
-            <div className="progress__bar" style={{ width: `${progreso}%` }} />
-          </div>
-
-          <ol className="steps">
-            {receta.pasos.map((paso, i) => {
-              const estado = i < pasoActual ? 'done' : i === pasoActual ? 'current' : 'pending'
-              return (
-                <li key={i} className={`step step--${estado}`} onClick={() => setPasoActual(i)}>
-                  <span className="step__num">{estado === 'done' ? '✓' : i + 1}</span>
-                  <p>{paso}</p>
-                </li>
-              )
-            })}
-          </ol>
-
-          {terminado ? (
-            <div className="done">
-              <span>🎉</span>
-              <p>¡Listo! A disfrutar tu {receta.titulo.toLowerCase()}.</p>
-              <button className="btn btn--ghost" onClick={() => setPasoActual(0)}>
-                Empezar de nuevo
-              </button>
-            </div>
-          ) : (
-            <div className="step-nav">
-              <button
-                className="btn btn--ghost"
-                onClick={() => setPasoActual((p) => Math.max(0, p - 1))}
-                disabled={pasoActual === 0}
-              >
-                Anterior
-              </button>
-              <button className="btn btn--primary" onClick={() => setPasoActual((p) => p + 1)}>
-                {pasoActual === totalPasos - 1 ? 'Terminar' : 'Siguiente paso'}
-              </button>
-            </div>
-          )}
-
-          {receta.tip && (
-            <aside className="tip">
-              <strong>💡 Tip:</strong> {receta.tip}
-            </aside>
-          )}
         </section>
       </div>
     </div>
